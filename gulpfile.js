@@ -9,6 +9,8 @@ var gulp = require('gulp'),
     imagemin = require('gulp-imagemin'),
     cache = require('gulp-cache'),
     fileinclude = require('gulp-file-include'),
+    modernizr = require('gulp-modernizr'),
+    cmq = require('gulp-combine-media-queries'),
     $ = require('gulp-load-plugins')();
 
 
@@ -36,6 +38,7 @@ gulp.task('serve', ['connect'], function () {
 gulp.task('styles', function () {
     return gulp.src('app/sass/**/*.scss')
         .pipe($.sass({errLogToConsole: true}))
+        .pipe(cmq())
         .pipe($.autoprefixer('last 1 version'))
         .pipe(gulp.dest('public/styles'))
         .pipe(reload({stream:true}))
@@ -90,10 +93,9 @@ gulp.task('watch', ['connect', 'serve'], function () {
     gulp.watch('app/partials/*.html', ['fileinclude']);
     
     gulp.watch([
-        'app/*.html',
-        'public/styles/**/*.css',
-        'app/sass/**/*.scss',
-        'app/scripts/**/*.js'
+        'public/*.html',
+        'public/styles/*.css',
+        'public/scripts/*.js'
     ]).on('change', function (file) {
         server.changed(file.path);
     });
@@ -110,7 +112,21 @@ gulp.task('fileinclude', function() {
     .pipe(gulp.dest('public/'));
 });
 
-gulp.task('default', ['watch', 'scripts', 'styles', 'images', 'connect','serve', 'fileinclude']);
+gulp.task('modernizr', function() {
+  gulp.src('app/scripts/*.js')
+    .pipe(modernizr({
+        options: [
+            "setClasses",
+            "addTest",
+            "html5printshiv",
+            "testProp",
+            "fnBind"
+        ]
+    }))
+    .pipe(gulp.dest("public/scripts"))
+});
 
-gulp.task('build', ['scripts','styles', 'serve', 'minifyJS', 'images','fileinclude']);
+gulp.task('default', [ 'scripts', 'styles', 'fileinclude', 'images', 'connect','serve','watch']);
+
+gulp.task('build', ['scripts', 'styles', 'fileinclude', 'serve', 'minifyJS', 'images']);
 

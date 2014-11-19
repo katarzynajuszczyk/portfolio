@@ -1,4 +1,31 @@
+@import "helpers/variables";
+@import "helpers/mixins";
+@import "helpers/responsive-utilities";
+@import "helpers/utilities";
+
 body{
-    background: olive;
+    background: #dedede;
+   
+}
+
+p {
+    color: olive;
     transform: rotate(40deg);
+    width:100px;
+    @include respond-to(mobile) {
+        color: blue;
+    }
+    @include respond-to(tablet) {
+        color: pink
+    }
+}
+
+a {
+    color: red;
+    @include respond-to(mobile) {
+        color: blue;
+    }
+    @include respond-to(tablet) {
+        color: pink
+    }
 }
