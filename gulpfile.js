@@ -3,15 +3,16 @@
 var gulp = require('gulp'),
     browserSync = require('browser-sync'),
     reload = browserSync.reload,
-    concat = require('gulp-concat'),
-    order = require("gulp-order"),
-    uglify = require('gulp-uglify'),
-    imagemin = require('gulp-imagemin'),
-    cache = require('gulp-cache'),
-    fileinclude = require('gulp-file-include'),
-    modernizr = require('gulp-modernizr'),
-    cmq = require('gulp-combine-media-queries'),
     $ = require('gulp-load-plugins')();
+
+var config = {
+    bowerDir: './bower_components'
+}
+
+gulp.task('bower', function() {
+    return bower()
+        .pipe(gulp.dest(config.bowerDir));
+});
 
 
 gulp.task('connect', function () {
@@ -38,7 +39,7 @@ gulp.task('serve', ['connect'], function () {
 gulp.task('styles', function () {
     return gulp.src('app/sass/**/*.scss')
         .pipe($.sass({errLogToConsole: true}))
-        .pipe(cmq())
+        .pipe($.cmq())
         .pipe($.autoprefixer('last 1 version'))
         .pipe(gulp.dest('public/styles'))
         .pipe(reload({stream:true}))
@@ -46,10 +47,21 @@ gulp.task('styles', function () {
         ;
 });
 
+gulp.task('minifyCSS', ['fileinclude'], function() {
+    return gulp.src('app/sass/**/*.scss')
+        .pipe($.sass({errLogToConsole: true}))
+        .pipe($.cmq())
+        //.pipe($.uncss({html:['public/index.html']}))
+        .pipe($.autoprefixer('last 1 version'))
+        .pipe($.minifyCSS({keepBreaks:false}))
+        .pipe(gulp.dest('public/styles'))
+        .pipe(reload({stream:true}))
+        ;    
+});
 
 gulp.task('images', function() {
   return gulp.src('app/images/*')
-    .pipe(imagemin({ optimizationLevel: 5, progressive: true, interlaced: true }))
+    .pipe($.imagemin({ optimizationLevel: 5, progressive: true, interlaced: true }))
     .pipe(gulp.dest('public/images'));
 });
 
@@ -58,27 +70,29 @@ gulp.task('scripts', function () {
     return gulp.src('app/scripts/**/*.js')
         .pipe($.jshint())
         .pipe($.jshint.reporter(require('jshint-stylish')))
-        .pipe(order([
+        .pipe($.order([
             "scripts/b.js",
             "scripts/a.js"
         ]))
-        .pipe(concat("main.js"))
+        .pipe($.concat("main.js"))
         .pipe($.size())
         .pipe(gulp.dest("public/scripts"));
 });
 
-gulp.task('minifyJS', function () {
+gulp.task('minifyJS', function () {    
     return gulp.src('app/scripts/**/*.js')
         .pipe($.jshint())
         .pipe($.jshint.reporter(require('jshint-stylish')))
-        .pipe(order([
+        .pipe($.order([
             "scripts/b.js",
             "scripts/a.js"
         ]))
-        .pipe(concat("main.js"))
-        .pipe(uglify())
+        .pipe($.concat("main.js"))
+        .pipe($.stripDebug())
+        .pipe($.uglify())    
         .pipe($.size())
         .pipe(gulp.dest("public/scripts"));
+
 });
 
 
@@ -105,28 +119,14 @@ gulp.task('watch', ['connect', 'serve'], function () {
 
 gulp.task('fileinclude', function() {
   gulp.src('app/index.html')
-    .pipe(fileinclude({
+    .pipe($.fileinclude({
       prefix: '@@',
       basepath: '@file'
     }))
     .pipe(gulp.dest('public/'));
 });
 
-gulp.task('modernizr', function() {
-  gulp.src('app/scripts/*.js')
-    .pipe(modernizr({
-        options: [
-            "setClasses",
-            "addTest",
-            "html5printshiv",
-            "testProp",
-            "fnBind"
-        ]
-    }))
-    .pipe(gulp.dest("public/scripts"))
-});
+gulp.task('default', ['scripts', 'styles', 'fileinclude', 'images', 'connect','serve','watch']);
 
-gulp.task('default', [ 'scripts', 'styles', 'fileinclude', 'images', 'connect','serve','watch']);
-
-gulp.task('build', ['scripts', 'styles', 'fileinclude', 'serve', 'minifyJS', 'images']);
+gulp.task('build', ['fileinclude', 'minifyCSS', 'minifyJS', 'images', 'serve' ]);
 
