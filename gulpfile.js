@@ -7,7 +7,8 @@ var gulp = require('gulp'),
     $ = require('gulp-load-plugins')();
 
 var config = {
-    bowerDir: './bower_components'
+    bowerDir: './bower_components',
+    sassPath: './app/sass',
 }
 
 gulp.task('run-bower', function() {
@@ -16,55 +17,50 @@ gulp.task('run-bower', function() {
 });
 
 
-//gulp.task('vendor-scripts', ['install'], function() {
-//
-//  return gulp.src(wiredep().js)
-//
-//    .pipe(gulp.dest('public/vendor'));
-//
-//});
-//
-//gulp.task('vendor-css', ['install'], function() {
-//
+gulp.task('vendor-scripts', function() {
+  return gulp.src(wiredep().js)
+    .pipe(gulp.dest('public/vendor'));
+});
+
+//gulp.task('vendor-css', function() {
 //  return gulp.src(wiredep().css)
-//
 //    .pipe(gulp.dest('public/vendor'));
-//
 //});
-//
-//gulp.task('index', ['my-scripts', 'my-css', 'vendor-scripts', 'vendor-css'], function() {
-//
-//  return gulp.src('app/index.html')
-//    .pipe(wiredep.stream({
-//      fileTypes: {
-//        html: {
-//          replace: {
-//            js: function(filePath) {
-//              return '<script src="' + 'vendor/' + filePath.split('/').pop() + '"></script>';
-//            },
-//            css: function(filePath) {
-//              return '<link rel="stylesheet" href="' + 'vendor/' + filePath.split('/').pop() + '"/>';
-//            }
-//          }
-//        }
-//      }
-//    }))
-//    .pipe(plugins.inject(
-//      gulp.src(['public/scripts/**/*.js'], { read: false }), {
-//        addRootSlash: false,
-//        transform: function(filePath, file, i, length) {
-//          return '<script src="' + filePath.replace('public/', '') + '"></script>';
-//        }
-//    }))
-//    .pipe(plugins.inject(
-//      gulp.src(['public/styles/**/*.css'], { read: false }), {
-//        addRootSlash: false,
-//        transform: function(filePath, file, i, length) {
-//          return '<link rel="stylesheet" href="' + filePath.replace('public/', '') + '"/>';
-//        }
-//      }))
-//    .pipe(gulp.dest('public'));
-//});
+
+gulp.task('link-assets', ['scripts', 'styles', 'vendor-scripts'], function() {
+
+  return gulp.src('app/index.html')
+    .pipe(wiredep.stream({
+      fileTypes: {
+        html: {
+          replace: {
+            js: function(filePath) {
+              return '<script src="' + 'vendor/' + filePath.split('/').pop() + '"></script>';
+            }
+          }
+        }
+      }
+    }))
+    .pipe($.inject(
+      gulp.src(['public/scripts/**/*.js'], { read: false }), {
+        addRootSlash: false,
+        transform: function(filePath, file, i, length) {
+          return '<script src="' + filePath.replace('public/', '') + '"></script>';
+        }
+    }))
+    .pipe($.inject(
+      gulp.src(['public/styles/**/*.css'], { read: false }), {
+        addRootSlash: false,
+        transform: function(filePath, file, i, length) {
+          return '<link rel="stylesheet" href="' + filePath.replace('public/', '') + '"/>';
+        }
+      }))
+    .pipe($.fileInclude({
+      prefix: '@@',
+      basepath: '@file'
+    }))
+    .pipe(gulp.dest('public'));
+});
 
 
 gulp.task('connect', function () {
@@ -93,7 +89,13 @@ gulp.task('styles', function () {
         .pipe($.rubySass({
             style: 'expanded',
             precision: 10,
-            lineNumbers: true
+            lineNumbers: true,
+            loadPath: [
+                 './app/sass',
+                 config.bowerDir + '/bootstrap-sass-official/assets/stylesheets',
+                 config.bowerDir + '/fontawesome/scss',
+                 config.bowerDir + '/singularity/stylesheets'
+            ]
          }))
         .pipe($.autoprefixer('last 1 version'))
         .pipe(gulp.dest('public/styles'))
@@ -101,11 +103,14 @@ gulp.task('styles', function () {
         .pipe($.size());
 });
 
-gulp.task('minifyCSS', ['styles'], function() {
+gulp.task('minifyStyles', ['fileinclude','styles'], function() {
     return gulp.src('public/styles/*.css')
-        .pipe($.cmq())
+//         .pipe($.uncss({
+//            html: ['public/index.html']
+//         }))
+        .pipe($.combineMediaQueries())
         .pipe($.autoprefixer('last 1 version'))
-        .pipe($.minifyCSS({keepBreaks:false}))
+        .pipe($.minifyCss({keepBreaks:false}))
         .pipe(gulp.dest('public/styles'))
         .pipe(reload({stream:true}));    
 });
@@ -191,7 +196,6 @@ gulp.task('watch', ['connect', 'serve'], function () {
 
 });
 
-
 gulp.task('fileinclude', function() {
   gulp.src('app/index.html')
     .pipe($.fileInclude({
@@ -201,9 +205,10 @@ gulp.task('fileinclude', function() {
     .pipe(gulp.dest('public/'));
 });
 
-gulp.task('default', ['scripts', 'styles', 'fileinclude', 'images', 'connect','serve','watch']);
 
-gulp.task('build', ['fileinclude', 'minifyCSS', 'minifyJS', 'images', 'serve' ]);
+gulp.task('default', ['link-assets', 'images', 'connect', 'serve', 'watch']);
+
+gulp.task('build', ['link-assets', 'minifyStyles', 'minifyJS', 'images', 'serve']);
 
 
 gulp.task('install', ['run-bower']); //always run in gitshell

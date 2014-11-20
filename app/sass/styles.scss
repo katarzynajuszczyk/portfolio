@@ -3,13 +3,23 @@
 @import "helpers/responsive-utilities";
 @import "helpers/utilities";
 
+
+@import "bootstrap/mixins";
+// Reset and dependencies
+@import "bootstrap/normalize";
+@import "font-awesome";
+@import "singularitygs";
+
 body{
     background: #dedede;
    
 }
 
 .dupajasiu {
-    border: 10px solid red;
+    border: 10px solid green;
+    @include add-grid(12); /*lalala*/
+    @include add-gutter(1/3);
+    @include add-gutter-style('split');
 }
 p {
     color: olive;
